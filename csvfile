@@ -1,0 +1,52 @@
+infile = 'art_1.txt'
+txt = open(infile, encoding="utf8").read()
+outfile = open('art_1.csv', 'w', newline='', encoding = "utf-8")
+top_row = ['NEWSPAPER', 'DATE', 'HEADLINE', 'TEXT']
+writer = csv.DictWriter(outfile, fieldnames=top_row, delimiter= ',')
+writer.writeheader()
+
+#Remove lines Copyright, All Rights Reserved, Editie + day, Gehele oplage etc etc.
+pattern1 = r'Copyright(.+?)\n|©(.+?)\n'
+pattern2 = r'BODY:|HEADLINE:|\d+\sof\s\d+\s[A-Z]+|Stadseditie(.+?)\n|Editie(.+?)\n|Gehele(.+?)\n|1ste(.+?)\n|nn(.+?)\n|NN(.+?)\n|NH(.+?)\n|nh(.+?)\n|All(.+?)\n'
+
+workfile = re.sub(pattern2, '', txt, flags= re.MULTILINE)
+workfile1 = re.sub(pattern1,'ENDFILE', workfile, flags=re.DOTALL)
+
+#split file on 'ENDFILE'
+workfile = workfile1.split('ENDFILE')
+
+#Check if there are more 'headers'
+meta_list = list(set(re.findall('\n([A-Z0-9-]*?):', txt)))
+
+#Keep only the common 'headers'
+meta_list = [m for m in meta_list if float(txt.count(m)) /len(workfile) >.20]
+top_row.extend(meta_list)
+
+workfile = [f for f in workfile if len(f.split('\n\n')) > 2]
+
+#Remove blanks
+for f in workfile: 
+    filessplit = [row.replace('\n', '').strip() for row in f.split("\n") if len(row) > 0]
+    
+    #in case there are empty lists.
+#    if not f.strip():
+#        continue
+    
+   
+    #Delete empty elements in list
+    filessplit1 = list(filter(None,filessplit))
+    
+    meta_dict = {k : '' for k in top_row}
+    
+    np = filessplit1[0].strip().split('\n')[0]
+    date = filessplit1[1].strip()
+    hl = filessplit1[2].strip()
+    text = filessplit1[3:]
+    
+
+    meta_dict['NEWSPAPER'] = np
+    meta_dict['DATE'] = date
+    meta_dict['HEADLINE'] = hl
+    meta_dict['TEXT'] = text
+    
+    writer.writerow(meta_dict)
